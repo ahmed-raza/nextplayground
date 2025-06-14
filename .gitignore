@@ -41,3 +41,9 @@ yarn-error.log*
 next-env.d.ts
 
 .history
+
+# Python backend
+backend/__pycache__
+backend/**/__pycache__
+backend/venv
+backend/*.db
