@@ -1,24 +1,26 @@
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from db.connection import SessionLocal
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, EmailStr
+from db.deps import get_db
 from models.user import User
 from core.security import hash_password
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from schemas.auth.signup import SignUpRequest
 
 router = APIRouter()
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @router.post("/signup")
-def signup(name: str, email: str, password: str, db: Session = Depends(get_db)):
-    if db.query(User).filter_by(email=email).first():
+def signup(payload: SignUpRequest, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.email == payload.email).first()
+    if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    user = User(name=name, email=email, password=hash_password(password))
+
+    user = User(
+        name=payload.name,
+        email=payload.email,
+        password=hash_password(payload.password)
+    )
     db.add(user)
     db.commit()
     db.refresh(user)
-    return {"msg": "User created", "user_id": user.id}
+    return {"message": "User created successfully"}
